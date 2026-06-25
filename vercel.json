@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/speak-eloquently-v2.html" }
+  ]
+}
