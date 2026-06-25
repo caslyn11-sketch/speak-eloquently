@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Speak Eloquently</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Inter:wght@300;400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #faf9f7; --surface: #ffffff; --ink: #1a1a1a;
+    --ink-muted: #6b6b6b; --ink-soft: #a8a8a8;
+    --gold: #b8935a; --gold-light: #f0e6d3; --gold-pale: #faf5ee;
+    --line: #e8e4de; --progress-bg: #ede9e3;
+    --radius: 16px; --shadow: 0 2px 24px rgba(0,0,0,0.06);
+  }
+  body { background: var(--bg) !important; color: var(--ink); font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.6; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 24px 16px 48px; }
+  header { width: 100%; max-width: 520px; display: flex; align-items: center; justify-content: space-between; padding: 0 0 32px; }
+  .logo { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; letter-spacing: 0.02em; color: var(--ink); }
+  .logo span { color: var(--gold); }
+  .day-badge { font-size: 12px; font-weight: 500; color: var(--ink-muted); background: var(--gold-pale); border: 1px solid var(--gold-light); padding: 4px 12px; border-radius: 20px; letter-spacing: 0.05em; }
+  .progress-wrap { width: 100%; max-width: 520px; margin-bottom: 28px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-soft); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+  .progress-track { height: 3px; background: var(--progress-bg); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--gold), #d4a96a); border-radius: 2px; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
+  .dots { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--progress-bg); transition: background 0.3s; cursor: pointer; }
+  .dot.done { background: var(--gold); }
+  .dot.active { background: var(--gold); box-shadow: 0 0 0 2px var(--gold-light); }
+  .card { width: 100%; max-width: 520px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 20px; }
+  .card-eyebrow { background: var(--gold-pale); border-bottom: 1px solid var(--gold-light); padding: 12px 28px; display: flex; align-items: center; gap: 10px; }
+  .card-eyebrow .tag { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); font-weight: 500; }
+  .card-eyebrow .separator { width: 1px; height: 12px; background: var(--gold-light); }
+  .card-eyebrow .topic { font-size: 12px; color: var(--ink-muted); font-weight: 400; }
+  .card-body { padding: 32px 28px 28px; }
+  .lesson-title { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 300; line-height: 1.25; color: var(--ink); margin-bottom: 16px; letter-spacing: -0.01em; }
+  .lesson-title em { font-style: italic; color: var(--gold); }
+  .lesson-body { font-size: 14px; color: var(--ink-muted); line-height: 1.75; margin-bottom: 28px; }
+  .waveform-wrap { background: var(--gold-pale); border-radius: 12px; padding: 20px 20px 16px; margin-bottom: 24px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .waveform { display: flex; align-items: center; gap: 3px; height: 40px; }
+  .bar { width: 4px; background: var(--gold); border-radius: 2px; opacity: 0.3; height: 6px; }
+  .bar.playing { animation: pulse 0.8s ease-in-out infinite; opacity: 1; }
+  @keyframes pulse { 0%, 100% { transform: scaleY(1); opacity: 0.6; } 50% { transform: scaleY(2.5); opacity: 1; } }
+  .bar.playing:nth-child(2n) { animation-delay: 0.1s; }
+  .bar.playing:nth-child(3n) { animation-delay: 0.2s; }
+  .bar.playing:nth-child(4n) { animation-delay: 0.3s; }
+  .bar.playing:nth-child(5n) { animation-delay: 0.15s; }
+  .audio-meta { font-size: 11px; color: var(--ink-soft); letter-spacing: 0.04em; }
+  .play-btn { width: 52px; height: 52px; border-radius: 50%; background: var(--gold); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 4px 16px rgba(184,147,90,0.35); flex-shrink: 0; }
+  .play-btn:hover { transform: scale(1.06); box-shadow: 0 6px 20px rgba(184,147,90,0.45); }
+  .play-btn:active { transform: scale(0.97); }
+  .play-btn svg { width: 20px; height: 20px; fill: #fff; }
+  .audio-controls { display: flex; align-items: center; gap: 16px; width: 100%; }
+  .time-display { font-size: 12px; color: var(--ink-muted); font-variant-numeric: tabular-nums; min-width: 40px; }
+  .seek-track { flex: 1; height: 3px; background: var(--progress-bg); border-radius: 2px; position: relative; }
+  .seek-fill { height: 100%; background: var(--gold); border-radius: 2px; width: 0%; transition: width 0.3s linear; }
+  .phrase-card { background: var(--bg); border-radius: 12px; padding: 20px 22px; margin-bottom: 24px; border-left: 3px solid var(--gold); }
+  .phrase-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); font-weight: 500; margin-bottom: 8px; }
+  .phrase-text { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 400; font-style: italic; color: var(--ink); line-height: 1.4; margin-bottom: 6px; }
+  .phrase-guide { font-size: 12px; color: var(--ink-muted); }
+  .record-section { display: flex; align-items: center; gap: 16px; padding: 16px 0 4px; border-top: 1px solid var(--line); }
+  .record-btn { display: flex; align-items: center; gap: 8px; background: none; border: 1.5px solid var(--gold); color: var(--gold); border-radius: 24px; padding: 10px 20px; font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 500; cursor: pointer; transition: all 0.2s; letter-spacing: 0.02em; }
+  .record-btn:hover { background: var(--gold-pale); }
+  .record-btn.recording { background: var(--gold); color: #fff; }
+  .record-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .record-btn.recording .record-dot { animation: blink 1s ease-in-out infinite; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .record-hint { font-size: 12px; color: var(--ink-soft); line-height: 1.4; }
+  .tip-card { width: 100%; max-width: 520px; background: var(--surface); border-radius: var(--radius); padding: 20px 24px; box-shadow: var(--shadow); display: flex; gap: 16px; align-items: flex-start; margin-bottom: 20px; }
+  .tip-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--gold-pale); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; margin-top: 2px; }
+  .tip-text strong { font-size: 13px; font-weight: 500; color: var(--ink); display: block; margin-bottom: 4px; }
+  .tip-text p { font-size: 13px; color: var(--ink-muted); line-height: 1.6; }
+  .nav-row { width: 100%; max-width: 520px; display: flex; justify-content: space-between; gap: 12px; }
+  .nav-btn { flex: 1; padding: 14px 20px; border-radius: 12px; border: none; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; letter-spacing: 0.01em; }
+  .nav-btn.prev { background: var(--surface); color: var(--ink-muted); box-shadow: var(--shadow); }
+  .nav-btn.prev:hover { color: var(--ink); }
+  .nav-btn.next { background: var(--ink); color: #fff; box-shadow: 0 4px 16px rgba(26,26,26,0.2); }
+  .nav-btn.next:hover { background: #2a2a2a; }
+  .nav-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--ink); color: #fff; padding: 12px 24px; border-radius: 24px; font-size: 13px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); transition: transform 0.4s cubic-bezier(.4,0,.2,1); z-index: 100; white-space: nowrap; max-width: 90vw; text-align: center; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  /* Loading skeleton */
+  .skeleton { background: linear-gradient(90deg, var(--progress-bg) 25%, var(--gold-pale) 50%, var(--progress-bg) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; color: transparent; user-select: none; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .generating-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--gold); letter-spacing: 0.06em; text-transform: uppercase; }
+  .gen-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); animation: blink 0.8s ease-in-out infinite; }
+  .gen-dot:nth-child(2) { animation-delay: 0.2s; }
+  .gen-dot:nth-child(3) { animation-delay: 0.4s; }
+  /* TTS unavailable notice */
+  .tts-notice { font-size: 12px; color: var(--ink-soft); text-align: center; padding: 8px 0 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Speak <span>Eloquently</span></div>
+  <div class="day-badge" id="dayBadge">Day 1 of 15</div>
+</header>
+
+<div class="progress-wrap">
+  <div class="progress-label">
+    <span>YOUR PROGRESS</span>
+    <span id="progressPct">0%</span>
+  </div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+  </div>
+  <div class="dots" id="dots"></div>
+</div>
+
+<div class="card">
+  <div class="card-eyebrow">
+    <span class="tag">Lesson</span>
+    <div class="separator"></div>
+    <span class="topic" id="lessonTopic">First Impressions</span>
+  </div>
+  <div class="card-body">
+    <h1 class="lesson-title" id="lessonTitle">The art of the<br><em>confident pause</em></h1>
+    <p class="lesson-body" id="lessonBody">Silence is not weakness — it is authority. Most people rush to fill silence out of anxiety. Leaders pause deliberately. A two-second pause before answering signals you are thinking, not scrambling. It creates gravity around your next words.</p>
+
+    <div class="waveform-wrap">
+      <div class="waveform" id="waveform"></div>
+      <div class="audio-controls">
+        <button class="play-btn" id="playBtn" onclick="togglePlay()">
+          <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <div class="time-display" id="timeDisplay">0:00</div>
+        <div class="seek-track"><div class="seek-fill" id="seekFill"></div></div>
+      </div>
+      <div class="audio-meta" id="audioMeta">TAP PLAY · COACH NARRATION</div>
+      <div class="tts-notice" id="ttsNotice" style="display:none">🔇 Audio not available in this preview — works when downloaded</div>
+    </div>
+
+    <div class="phrase-card">
+      <div class="phrase-label">Today's practice phrase</div>
+      <div class="phrase-text" id="phraseText">"That's a great question. Let me think about that for a moment."</div>
+      <div class="phrase-guide" id="phraseGuide">Say it slowly. Pause 2 seconds after "question." Feel the silence hold.</div>
+    </div>
+
+    <div class="record-section">
+      <button class="record-btn" id="recordBtn" onclick="toggleRecord()">
+        <div class="record-dot"></div>
+        <span id="recordLabel">Record yourself</span>
+      </button>
+      <p class="record-hint">Listen back to hear your own pause rhythm</p>
+    </div>
+  </div>
+</div>
+
+<div class="tip-card">
+  <div class="tip-icon">💡</div>
+  <div class="tip-text">
+    <strong id="tipTitle">Why this works</strong>
+    <p id="tipBody">When you pause, listeners lean in. Your brain also performs better — rushed speech bypasses deliberate thought. Measured replies signal confidence across all professional cultures.</p>
+  </div>
+</div>
+
+<div class="nav-row">
+  <button class="nav-btn prev" id="prevBtn" onclick="changeLesson(-1)">← Previous</button>
+  <button class="nav-btn next" id="nextBtn" onclick="changeLesson(1)">Next lesson →</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Pre-built lessons 1–5 ──
+const prebuiltLessons = [
+  {
+    topic: "First Impressions",
+    title: "The art of the<br><em>confident pause</em>",
+    body: "Silence is not weakness — it is authority. Most people rush to fill silence out of anxiety. Leaders pause deliberately. A two-second pause before answering signals you are thinking, not scrambling. It creates gravity around your next words.",
+    phrase: '"That\'s a great question. Let me think about that for a moment."',
+    guide: 'Say it slowly. Pause 2 seconds after "question." Feel the silence hold.',
+    tip: "Why this works",
+    tipBody: "When you pause, listeners lean in. Your brain also performs better — rushed speech bypasses deliberate thought. Measured replies signal confidence across all professional cultures."
+  },
+  {
+    topic: "Vocal Power",
+    title: "Speak from your<br><em>chest, not your throat</em>",
+    body: "Your voice quality changes where it originates. Throat-based speech sounds tight and nervous. Chest resonance projects warmth, confidence, and authority — the voice people trust in a room.",
+    phrase: '"Good morning, I\'m glad to be here with you today."',
+    guide: "Place one hand on your chest. Feel it vibrate as you speak. Aim for that resonance.",
+    tip: "The resonance shift",
+    tipBody: "Chest resonance adds natural bass to your voice. This signals calm and control — qualities that make people listen longer and trust more readily."
+  },
+  {
+    topic: "Word Economy",
+    title: "One sentence.<br><em>Maximum impact.</em>",
+    body: "Over-explaining kills credibility. Every extra word dilutes the one that mattered. Train yourself to state your point in one clear sentence, then stop. Let the other person respond before you elaborate.",
+    phrase: '"The key issue is this: we need to decide by Friday."',
+    guide: "State it once. Don't add a second sentence. Practice the discomfort of stopping.",
+    tip: "Less is more authority",
+    tipBody: "People who over-explain often do so from insecurity. A short, clear statement is the linguistic signature of someone who is certain of their ground."
+  },
+  {
+    topic: "Active Listening",
+    title: "The question that<br><em>opens doors</em>",
+    body: "Most people listen to reply, not to understand. One well-placed question signals you truly heard the other person. It deepens trust instantly — and gives you valuable thinking time.",
+    phrase: '"What matters most to you about this?"',
+    guide: "Ask, then go quiet. Count to five silently before you speak again.",
+    tip: "The power of inquiry",
+    tipBody: "In negotiations, leadership, and everyday conversation — asking questions transfers agency to the other person while keeping you in control of the direction."
+  },
+  {
+    topic: "Handling Pressure",
+    title: "Stay calm when<br><em>challenged</em>",
+    body: "When someone pushes back hard, your body triggers a stress response. The goal is to interrupt that cycle before it reaches your voice. Slow your breath, lower your shoulders, then respond.",
+    phrase: '"I hear you. Here\'s how I see it."',
+    guide: "Take one breath after you hear criticism. Then respond, not react.",
+    tip: "Physiological reset",
+    tipBody: "A single slow exhale activates the parasympathetic nervous system — calming your voice, steadying your hands, and sharpening your thought."
+  }
+];
+
+// Topics for AI-generated lessons 6–15
+const aiTopics = [
+  "Storytelling in Conversation",
+  "Assertiveness Without Aggression",
+  "Reading the Room",
+  "Negotiation Language",
+  "Public Speaking Confidence",
+  "Difficult Conversations",
+  "Building Rapport Quickly",
+  "Presenting Ideas Clearly",
+  "Managing Interruptions",
+  "Your Signature Communication Style"
+];
+
+// Cache so AI lessons aren't regenerated on back/forward
+const lessonCache = {};
+// Pre-fill cache with prebuilt lessons
+prebuiltLessons.forEach((l, i) => { lessonCache[i] = l; });
+
+let currentLesson = 0;
+let isPlaying = false;
+let isRecording = false;
+let playInterval = null;
+let playProgress = 0;
+let speechStart = null;
+let estimatedDuration = 0;
+let isGenerating = false;
+
+// ── TTS setup — safe guard ──
+const ttsAvailable = (typeof window !== 'undefined') && ('speechSynthesis' in window);
+let synth = ttsAvailable ? window.speechSynthesis : null;
+let voices = [];
+
+if (ttsAvailable) {
+  voices = synth.getVoices();
+  if (synth.onvoiceschanged !== undefined) {
+    synth.onvoiceschanged = () => { voices = synth.getVoices(); };
+  }
+} else {
+  document.getElementById('ttsNotice').style.display = 'block';
+  document.getElementById('audioMeta').style.display = 'none';
+}
+
+function getBestVoice() {
+  if (!ttsAvailable || !voices.length) return null;
+  const preferred = ['Google UK English Female','Microsoft Zira - English (United States)','Samantha','Karen','Moira','Tessa'];
+  for (const name of preferred) {
+    const v = voices.find(v => v.name === name);
+    if (v) return v;
+  }
+  return voices.find(v => v.lang && v.lang.startsWith('en')) || voices[0];
+}
+
+// ── Build dots ──
+const dotsEl = document.getElementById('dots');
+for (let i = 0; i < 15; i++) {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.onclick = () => { if (!isGenerating) goToLesson(i); };
+  dotsEl.appendChild(d);
+}
+
+// ── Build waveform bars ──
+const waveEl = document.getElementById('waveform');
+for (let i = 0; i < 32; i++) {
+  const b = document.createElement('div');
+  b.className = 'bar';
+  b.style.height = (Math.random() * 22 + 6) + 'px';
+  waveEl.appendChild(b);
+}
+
+// ── Render a lesson object into the UI ──
+function renderLesson(l, idx) {
+  document.getElementById('lessonTopic').textContent = l.topic;
+  document.getElementById('lessonTitle').innerHTML = l.title;
+  document.getElementById('lessonBody').textContent = l.body;
+  document.getElementById('phraseText').textContent = l.phrase;
+  document.getElementById('phraseGuide').textContent = l.guide;
+  document.getElementById('tipTitle').textContent = l.tip;
+  document.getElementById('tipBody').textContent = l.tipBody;
+  document.getElementById('dayBadge').textContent = `Day ${idx + 1} of 15`;
+  document.getElementById('timeDisplay').textContent = '0:00';
+  document.getElementById('audioMeta').textContent = 'TAP PLAY · COACH NARRATION';
+
+  const pct = Math.round((idx / 15) * 100);
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('progressFill').style.width = pct + '%';
+
+  const dots = dotsEl.querySelectorAll('.dot');
+  dots.forEach((d, i) => {
+    d.className = 'dot' + (i < idx ? ' done' : i === idx ? ' active' : '');
+  });
+
+  stopPlay();
+  document.getElementById('seekFill').style.width = '0%';
+  if (isRecording) toggleRecord();
+  document.getElementById('nextBtn').disabled = false;
+  document.getElementById('prevBtn').disabled = false;
+}
+
+// ── Show loading skeleton while AI generates ──
+function showSkeleton(idx) {
+  document.getElementById('lessonTopic').innerHTML = '<span class="generating-badge"><div class="gen-dot"></div><div class="gen-dot"></div><div class="gen-dot"></div> Generating lesson ' + (idx+1) + '</span>';
+  document.getElementById('lessonTitle').innerHTML = '<span class="skeleton" style="display:block;height:32px;width:70%;margin-bottom:8px">&nbsp;</span><span class="skeleton" style="display:block;height:28px;width:50%">&nbsp;</span>';
+  document.getElementById('lessonBody').innerHTML = '<span class="skeleton" style="display:block;height:14px;width:100%;margin-bottom:6px">&nbsp;</span><span class="skeleton" style="display:block;height:14px;width:90%;margin-bottom:6px">&nbsp;</span><span class="skeleton" style="display:block;height:14px;width:80%">&nbsp;</span>';
+  document.getElementById('phraseText').innerHTML = '<span class="skeleton" style="display:block;height:20px;width:85%">&nbsp;</span>';
+  document.getElementById('phraseGuide').innerHTML = '<span class="skeleton" style="display:block;height:12px;width:70%">&nbsp;</span>';
+  document.getElementById('tipTitle').innerHTML = '<span class="skeleton" style="display:block;height:13px;width:40%">&nbsp;</span>';
+  document.getElementById('tipBody').innerHTML = '<span class="skeleton" style="display:block;height:13px;width:100%;margin-bottom:5px">&nbsp;</span><span class="skeleton" style="display:block;height:13px;width:80%">&nbsp;</span>';
+  document.getElementById('dayBadge').textContent = `Day ${idx + 1} of 15`;
+  document.getElementById('nextBtn').disabled = true;
+  document.getElementById('prevBtn').disabled = true;
+  stopPlay();
+}
+
+// ── Generate lesson via Anthropic API ──
+async function generateLesson(idx) {
+  const topic = aiTopics[idx - 5];
+  const prevTopics = Object.values(lessonCache).map(l => l.topic).join(', ');
+
+  const resp = await fetch('/api/generate-lesson', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      topic,
+      lessonNumber: idx + 1,
+      prevTopics
+    })
+  });
+
+  if (!resp.ok) throw new Error('API error ' + resp.status);
+  return await resp.json();
+}
+
+// ── Load a lesson by index ──
+async function loadLesson(idx) {
+  currentLesson = idx;
+
+  // Already cached
+  if (lessonCache[idx]) {
+    renderLesson(lessonCache[idx], idx);
+    return;
+  }
+
+  // Needs AI generation
+  isGenerating = true;
+  showSkeleton(idx);
+
+  try {
+    const lesson = await generateLesson(idx);
+    lessonCache[idx] = lesson;
+    renderLesson(lesson, idx);
+    showToast('Lesson ' + (idx+1) + ' ready');
+  } catch (e) {
+    console.error(e);
+    // Fallback placeholder so user isn't stuck
+    const fallback = {
+      topic: aiTopics[idx - 5] || 'Communication',
+      title: 'Keep <em>practising</em>',
+      body: 'Could not generate this lesson right now. Please check your connection and try again.',
+      phrase: '"Every day I speak with more clarity and confidence."',
+      guide: 'Say it with conviction. Repeat three times.',
+      tip: 'Consistency wins',
+      tipBody: 'Daily practice, even for five minutes, builds communication skill faster than occasional long sessions. Show up every day.'
+    };
+    lessonCache[idx] = fallback;
+    renderLesson(fallback, idx);
+    showToast('Could not load lesson — using fallback');
+  } finally {
+    isGenerating = false;
+  }
+}
+
+function goToLesson(idx) {
+  if (idx < 0 || idx > 14 || isGenerating) return;
+  loadLesson(idx);
+}
+
+function changeLesson(dir) {
+  if (isGenerating) return;
+  const next = currentLesson + dir;
+  if (next < 0) { showToast('You\'re on the first lesson'); return; }
+  if (next > 14) { showToast('🎉 Course complete! All 15 days done.'); return; }
+  goToLesson(next);
+}
+
+// ── TTS ──
+function buildNarration(l) {
+  const titlePlain = l.title.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+  return `${l.topic}. ${titlePlain}. ${l.body} Your practice phrase: ${l.phrase.replace(/"/g,'')}. ${l.guide} Remember: ${l.tipBody}`;
+}
+
+function togglePlay() {
+  if (!ttsAvailable) { showToast('Audio not available in this preview — download the file to use TTS'); return; }
+  isPlaying ? stopPlay() : startPlay();
+}
+
+function startPlay() {
+  if (!synth) return;
+  synth.cancel();
+  const l = lessonCache[currentLesson];
+  if (!l) return;
+  const script = buildNarration(l);
+  const wordCount = script.split(/\s+/).length;
+  estimatedDuration = Math.round((wordCount / 110) * 60);
+
+  const utter = new SpeechSynthesisUtterance(script);
+  const voice = getBestVoice();
+  if (voice) utter.voice = voice;
+  utter.rate = 0.88;
+  utter.pitch = 1.05;
+  utter.volume = 1;
+  utter.lang = 'en-GB';
+
+  isPlaying = true;
+  speechStart = Date.now();
+
+  document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+  document.querySelectorAll('.bar').forEach(b => b.classList.add('playing'));
+  document.getElementById('audioMeta').textContent = 'PLAYING · COACH NARRATION';
+
+  playInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - speechStart) / 1000);
+    const pct = Math.min((elapsed / estimatedDuration) * 100, 99);
+    document.getElementById('seekFill').style.width = pct + '%';
+    const m = Math.floor(elapsed / 60), s = elapsed % 60;
+    document.getElementById('timeDisplay').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  }, 300);
+
+  utter.onend = () => {
+    clearInterval(playInterval);
+    isPlaying = false;
+    document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+    document.querySelectorAll('.bar').forEach(b => b.classList.remove('playing'));
+    document.getElementById('audioMeta').textContent = 'TAP PLAY · COACH NARRATION';
+    document.getElementById('seekFill').style.width = '100%';
+    showToast('Narration complete — now practise your phrase');
+  };
+  utter.onerror = () => stopPlay();
+  synth.speak(utter);
+}
+
+function stopPlay() {
+  if (synth) synth.cancel();
+  clearInterval(playInterval);
+  isPlaying = false;
+  document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+  document.querySelectorAll('.bar').forEach(b => b.classList.remove('playing'));
+  if (ttsAvailable) document.getElementById('audioMeta').textContent = 'TAP PLAY · COACH NARRATION';
+}
+
+function toggleRecord() {
+  isRecording = !isRecording;
+  const btn = document.getElementById('recordBtn');
+  const label = document.getElementById('recordLabel');
+  if (isRecording) { btn.classList.add('recording'); label.textContent = 'Recording…'; showToast('Recording started — speak your phrase clearly'); }
+  else { btn.classList.remove('recording'); label.textContent = 'Record yourself'; showToast('Recording stopped — listen back and notice your pauses'); }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── Init ──
+loadLesson(0);
+</script>
+</body>
+</html>
